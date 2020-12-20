@@ -1,0 +1,5 @@
+#ifndef SKYTRAQ_BINARY_H
+#define SKYTRAQ_BINARY_H
+
+
+#endif // SKYTRAQ_BINARY_H
