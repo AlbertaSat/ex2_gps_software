@@ -69,7 +69,7 @@ uint16_t  _date; // UTC date
 // Other status
 //uint32_t   _last_time_fix;
 //uint32_t   _last_position_fix;
-
+void NMEAParser_reset_all_values(Void);
 inline uint32_t getTime() {return _time;}
 inline uint16_t getDate() {return _date;}
 inline void getLatitude(int32_t *upper, int32_t *lower) {*upper = _latitude_upper; *lower = _latitude_lower;}
