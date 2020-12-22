@@ -15,6 +15,8 @@
 #ifndef SKYTRAQ_BINARY_TYPES_H
 #define SKYTRAQ_BINARY_TYPES_H
 
+//TODO: create enum for messages with sub ID
+
 typedef enum SYSTEM_INPUT_IDs {
   SYSTEM_RESTART                           = 0x1,    // perform a reset
   QUERY_SOFTWARE_VERSION                   = 0x2,    // reset pointer to log buffer
@@ -83,7 +85,7 @@ typedef enum GNSS_OUTPUT_IDS {
   GNSS_1PPS_CABLE_DELAY                    = 0XBB,
   GPS_ALMANAC_DATA                         = 0XBE,
   GNSS_1PPS_TIMING                         = 0XC2
-}
+} GNSS_OUTPUT_IDS;
 
 
 #endif /* SKYTRAQ_BINARY_TYPES_H */
