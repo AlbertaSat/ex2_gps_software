@@ -14,7 +14,7 @@
     ticks?
 */
 
-void NMEAParser_reset_all_values(Void) {
+void NMEAParser_reset_all_values(void) {
     _char_offset = 0;
 
     _time = GPS_INVALID_TIME;
