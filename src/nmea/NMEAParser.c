@@ -7,6 +7,13 @@
 #include "NMEAParser.h"
 
 
+/*
+    IMPORTANT:
+    right now this modification of the software does not have a way to tell how
+    old data is. We need to find a way to implement this. Perhaps with freeRTOS
+    ticks?
+*/
+
 void NMEAParser_reset_all_values(Void) {
     _char_offset = 0;
 
