@@ -58,9 +58,32 @@ typedef enum GNSS_INPUT_IDs {
   SET_GLONASS_ALMANAC                      = 0x5E,
   GET_GLONASS_TIME_CORRECT_                = 0x5F,
   SET_GLONASS_TIME_CORRECT                 = 0x60,
+} GNSS_INPUT_IDs;
+
+typedef enum SYSTEM_OUTPUT_IDS {
+  SOFTWARE_VERSION                         = 0x80,
+  SOFTWARE_CRC                             = 0x81,
+  ACK                                      = 0x83,
+  NACK                                     = 0x84,
+  POSITION_UPDATE_RATE                     = 0x86,
+  GLONASS_EPHEMERIS                        = 0x90,
+  GLONASS_ALMANAC                          = 0x91,
+  GLONASS_TIME_CORRECT                     = 0x92,
+  GNSS_NMEA_TALKER_ID                      = 0x93,
+} SYSTEM_OUTPUT_IDS;
+
+typedef enum GNSS_OUTPUT_IDS {
+  NAVIGATION_DATA_MESSAGE                  = 0xA8,
+  GNSS_DATUM                               = 0xAE,
+  GNSS_DOP_MASK                            = 0xAF,
+  ELEVATION_CNR_MASK                       = 0XB0,
+  GPS_EPHEMERIS_DATA                       = 0xB1,
+  GNSS_POSITION_PINNING_STATUS             = 0XB4,
+  GNSS_POWER_MODE_STATUS                   = 0XB9,
+  GNSS_1PPS_CABLE_DELAY                    = 0XBB,
+  GPS_ALMANAC_DATA                         = 0XBE,
+  GNSS_1PPS_TIMING                         = 0XC2
 }
-
-
 
 
 #endif /* SKYTRAQ_BINARY_TYPES_H */
