@@ -25,10 +25,11 @@ void test_NMEAParser_will_take_input_sentence(void) {
         // until \n is reached
         new_data = NMEAParser_encode(NMEA_to_decode[i]);
         if (NMEA_to_decode[i] == '\n'){
-            TEST_ASSERT_EQUAL(true, new_data);
+            TEST_ASSERT_TRUE(new_data);
         } else {
-            TEST_ASSERT_EQUAL(false, new_data);
+            TEST_ASSERT_FALSE(new_data);
         }
         
     }
 }
+
