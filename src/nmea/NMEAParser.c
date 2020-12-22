@@ -6,43 +6,39 @@
 
 #include "NMEAParser.h"
 
-/*
-NMEAParser_NMEAParser() {
 
-    _char_offset(0),
+void NMEAParser_reset_all_values(Void) {
+    _char_offset = 0;
 
-    _time(GPS_INVALID_TIME),
-    _latitude_lower(GPS_INVALID_ANGLE),
-    _latitude_upper(GPS_INVALID_ANGLE),
-    _longitude_lower(GPS_INVALID_ANGLE),
-    _longitude_upper(GPS_INVALID_ANGLE),
-    _fixquality(-1),
-    _numsats(GPS_INVALID_SATELLITES),
-    _hdop(GPS_INVALID_DOP),
-    _altitude(GPS_INVALID_ALTITUDE),
+    _time = GPS_INVALID_TIME;
+    _latitude_lower = GPS_INVALID_ANGLE;
+    _latitude_upper = GPS_INVALID_ANGLE;
+    _longitude_lower = GPS_INVALID_ANGLE;
+    _longitude_upper = GPS_INVALID_ANGLE;
+    _fixquality = -1;
+    _numsats = GPS_INVALID_SATELLITES;
+    _hdop = GPS_INVALID_DOP;
+    _altitude = GPS_INVALID_ALTITUDE;
 
-    _fixtype(0),
-    _pdop(GPS_INVALID_DOP),
-    _vdop(GPS_INVALID_DOP),
+    _fixtype = 0;
+    _pdop = GPS_INVALID_DOP;
+    _vdop = GPS_INVALID_DOP;
 
-    _numsats_visible(GPS_INVALID_SATELLITES),
-    _gsv_sentence(0),
-    _gsv_sentences(0),
-    _snr_count(0),
-    _snr_total(GPS_INVALID_SNR),
-    _new_snr_total(0),
-    _snr_avg(GPS_INVALID_SNR),
+    _numsats_visible = GPS_INVALID_SATELLITES;
+    _gsv_sentence = 0;
+    _gsv_sentences = 0;
+    _snr_count = 0;
+    _snr_total = GPS_INVALID_SNR;
+    _new_snr_total = 0;
+    _snr_avg = GPS_INVALID_SNR;
 
-    _speed(GPS_INVALID_SPEED),
-    _course(GPS_INVALID_ANGLE),
-    _date(GPS_INVALID_DATE),
+    _speed = GPS_INVALID_SPEED;
+    _course = GPS_INVALID_ANGLE;
+    _date = GPS_INVALID_DATE;
 
-    _last_time_fix(GPS_INVALID_FIX_TIME),
-    _last_position_fix(GPS_INVALID_FIX_TIME)
-}*/
-//{
-//    _sentence[0] = 0;
-//}
+    //_last_time_fix = GPS_INVALID_FIX_TIME;
+    //_last_position_fix = GPS_INVALID_FIX_TIME;
+}
 
 // this should be in the header but ceedling is a bitch
 const char _GPGGA_TERM[7] = "$GPGGA";
