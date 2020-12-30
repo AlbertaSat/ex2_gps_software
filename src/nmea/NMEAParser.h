@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-
+#include "../../inc/drivers/freeRTOS.h"
 
 #define NMEA_GGA 0
 #define NMEA_GSA 1
@@ -24,10 +24,11 @@
 #define NMEASENTENCE_MAXLENGTH 120
 #define NMEASENTENCE_MAXTERMS 25
 
+#define GPS_AGE_INVALID_THRESHOLD = 10000
 
 
 enum {
-    GPS_INVALID_DOP = 0xFFFFFF,       GPS_INVALID_ANGLE = 999999999,
+    GPS_INVALID_DOP = 0xFFFF,       GPS_INVALID_ANGLE = 999999999,
     GPS_INVALID_ALTITUDE = 999999999,   GPS_INVALID_DATE = 0,
     GPS_INVALID_TIME = 0xFFFFFFFF,      GPS_INVALID_SPEED = 999999999,
     GPS_INVALID_FIX_TIME = 0xFFFFFFFF,  GPS_INVALID_SATELLITES = 0xFF,
@@ -67,8 +68,8 @@ uint16_t  _date; // UTC date
 // Add variables for additional NMEA sentences here
 
 // Other status
-//uint32_t   _last_time_fix;
-//uint32_t   _last_position_fix;
+uint32_t   _last_time_fix;
+uint32_t   _last_position_fix;
 void NMEAParser_reset_all_values(void);
 inline uint32_t getTime() {return _time;}
 inline uint16_t getDate() {return _date;}
@@ -83,8 +84,8 @@ inline uint8_t getFixQuality() {return _fixquality;}
 inline uint8_t getFixType() {return _fixtype;}
 inline uint32_t getSpeed() {return _speed;}
 inline uint16_t getCourse() {return _course;}
-//inline uint32_t timeAge() {return millis() - _last_time_fix;}
-//inline uint32_t positionAge() {return millis() - _last_position_fix;}
+inline uint32_t timeAge() {return xTaskGetTickCount() - _last_time_fix;}
+inline uint32_t positionAge() {return xTaskGetTickCount() - _last_position_fix;}
 inline uint8_t getNSatsVisible() {return _numsats_visible;}
 inline uint32_t getSNR() {return _snr_avg;}
 

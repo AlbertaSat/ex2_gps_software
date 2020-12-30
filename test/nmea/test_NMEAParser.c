@@ -2,6 +2,7 @@
 
 #include "NMEAParser.h"
 #include <string.h>
+#include "mock_freeRTOS.h"
 
 void setUp(void)
 {
@@ -11,13 +12,14 @@ void tearDown(void)
 {
 }
 
-
-
-
 void test_NMEAParser_will_take_input_sentence(void) {
     // clear the values before the test to prevent interference
     NMEAParser_reset_all_values();
+
+    xTaskGetTickCountFromISR_ExpectAndReturn(0);
+
     char *NMEA_to_decode = "$GPRMC,165401.997831,A,3725.0690,N,12203.3824,W,0.000,082.1,070717,,,A*48\r\n";
+
     for (int i = 0; i<strlen(NMEA_to_decode); i++) {
         bool new_data = false;
 
@@ -53,6 +55,8 @@ void test_NMEAParser_termcmp(void) {
 void test_NMEAParser_will_decode_GPRMC(void) {
     // clear the values before the test to prevent interference
     NMEAParser_reset_all_values();
+    xTaskGetTickCountFromISR_ExpectAndReturn(0);
+
     char *NMEA_to_decode = "$GPRMC,165401.997831,A,3725.0690,N,12203.3824,W,0.000,082.1,070717,,,A*48\r\n";
     for (int i = 0; i<strlen(NMEA_to_decode); i++) {
         bool new_data = false;
@@ -72,6 +76,8 @@ void test_NMEAParser_will_decode_GPRMC(void) {
 void test_NMEAParser_will_decode_GPGGA(void) {
     // clear the values before the test to prevent interference
     NMEAParser_reset_all_values();
+    xTaskGetTickCountFromISR_ExpectAndReturn(0);
+
     char *NMEA_to_decode = "$GPGGA,165155.997704,3725.0673,N,12203.3815,W,1,08,1.2,26.8,M,-32.0,M,,0000*6E\r\n";
     for (int i = 0; i<strlen(NMEA_to_decode); i++) {
         bool new_data = false;
@@ -92,6 +98,8 @@ void test_NMEAParser_will_decode_GPGGA(void) {
 void test_NMEAParser_will_decode_GPGSA(void) {
     // clear the values before the test to prevent interference
     NMEAParser_reset_all_values();
+    xTaskGetTickCountFromISR_ExpectAndReturn(0);
+
     char *NMEA_to_decode = "$GPGSA,A,3,01,13,28,07,11,17,15,30,,,,,2.0,1.2,1.6*3B\r\n";
     for (int i = 0; i<strlen(NMEA_to_decode); i++) {
         bool new_data = false;
@@ -112,6 +120,8 @@ void test_NMEAParser_will_decode_GPGSA(void) {
 void test_NMEAParser_will_decode_GPGSV(void) {
     // clear the values before the test to prevent interference
     NMEAParser_reset_all_values();
+    xTaskGetTickCountFromISR_ExpectAndReturn(0);
+
     char *NMEA_to_decode = "$GPGSV,3,1,10,17,69,177,30,28,59,031,44,30,54,112,42,13,52,271,41*77\r\n";
     for (int i = 0; i<strlen(NMEA_to_decode); i++) {
         bool new_data = false;
@@ -136,6 +146,8 @@ void test_NMEAParser_returns_false_unknown_sentence(void) {
 
     // clear the values before the test to prevent interference
     NMEAParser_reset_all_values();
+    xTaskGetTickCountFromISR_ExpectAndReturn(0);
+
     char *NMEA_to_decode = "$GPZDA,165154.997704,07,07,2017,00,00*64\r\n";
     for (int i = 0; i<strlen(NMEA_to_decode); i++) {
         bool new_data = false;

@@ -6,14 +6,6 @@
 
 #include "NMEAParser.h"
 
-
-/*
-    IMPORTANT:
-    right now this modification of the software does not have a way to tell how
-    old data is. We need to find a way to implement this. Perhaps with freeRTOS
-    ticks?
-*/
-
 void NMEAParser_reset_all_values(void) {
     _char_offset = 0;
 
@@ -43,8 +35,8 @@ void NMEAParser_reset_all_values(void) {
     _course = GPS_INVALID_ANGLE;
     _date = GPS_INVALID_DATE;
 
-    //_last_time_fix = GPS_INVALID_FIX_TIME;
-    //_last_position_fix = GPS_INVALID_FIX_TIME;
+    _last_time_fix = GPS_INVALID_FIX_TIME;
+    _last_position_fix = GPS_INVALID_FIX_TIME;
 }
 
 // this should be in the header but ceedling is a bitch
@@ -82,7 +74,7 @@ bool NMEAParser_encode(char c)
 
 bool NMEAParser_decode_sentence()
 {
-    //long logtime = millis();
+    TickType_t logtime = xTaskGetTickCountFromISR();
 
     // determine sentence type
     int sentence_type;
