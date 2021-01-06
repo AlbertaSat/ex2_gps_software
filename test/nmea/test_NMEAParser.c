@@ -39,22 +39,6 @@ void test_NMEAParser_will_take_input_sentence(void) {
     }
 }
 
-void test_NMEAParser_parse_degrees(void) {
-    TEST_IGNORE_MESSAGE("need to implement degree parse function test");
-}
-
-void test_NMEAParser_parse_decimal(void) {
-    TEST_IGNORE_MESSAGE("need to implement decimal parse function test");
-}
-
-void test_NMEAParser_hexToInt(void) {
-    TEST_IGNORE_MESSAGE("need to implement hexToInt function test");
-}
-
-void test_NMEAParser_termcmp(void) {
-    TEST_IGNORE_MESSAGE("need to implement termcmp function test");
-
-}
 
 void test_NMEAParser_will_decode_GPRMC(void) {
     // clear the values before the test to prevent interference
