@@ -2,42 +2,121 @@
     NMEAParser.cpp - Library for parsing NMEA strings from a GPS
     Decodes GGA, GSA, GSV, and RMC strings
     Reed A. Foster, July 2017.
+    Robert N. Taylor, December 2020
 */
 
 #include "NMEAParser.h"
+#include <string.h>
+/*
+ TODO: The library expresses some values a bit weirdly. for example, 11.4 knots in speed is expressed as 114
+ I intend to change this to floating point values. Latitude/longitude will continue to be expressed in upper/lower
+
+ Values to change: speed, course
+
+ Also, consider changing date and time to standard structs
+
+*/
+static int NMEAParser_termcmp(const char *str1, const char *str2);
+static int NMEAParser_hexToInt(char hex);
+static int32_t NMEAParser_parse_decimal(char *p);
+static void NMEAParser_parse_degrees(char *p, int32_t *upper, int32_t *lower);
+static bool NMEAParser_decode_sentence();
+
+static char _sentence[NMEASENTENCE_MAXLENGTH];
+static int  _char_offset;
+
+const static GPGGA_s GPGGA_invalid = {._time = GPS_INVALID_TIME,
+                                      ._latitude_lower = GPS_INVALID_ANGLE,
+                                      ._latitude_upper = GPS_INVALID_ANGLE,
+                                      ._longitude_lower = GPS_INVALID_ANGLE,
+                                      ._longitude_upper = GPS_INVALID_ANGLE,
+                                      ._fixquality = -1,
+                                      ._numsats = GPS_INVALID_SATELLITES,
+                                      ._hdop = GPS_INVALID_DOP,
+                                      ._altitude = GPS_INVALID_ALTITUDE,
+                                      ._logtime = (TickType_t)GPS_INVALID_FIX_TIME};
+
+const static GPGSA_s GPGSA_invalid = {._fixtype = 0,
+                                      ._hdop = GPS_INVALID_DOP,
+                                      ._vdop = GPS_INVALID_DOP,
+                                      ._pdop = GPS_INVALID_DOP,
+                                      ._logtime = (TickType_t)GPS_INVALID_FIX_TIME};
+
+const static GPGSV_s GPGSV_invalid = {._numsats_visible = GPS_INVALID_SATELLITES,
+                                      ._gsv_sentence = 0,
+                                      ._gsv_sentences = 0,
+                                      ._snr_count = 0,
+                                      ._snr_total = GPS_INVALID_SNR,
+                                      ._new_snr_total = 0,
+                                      ._snr_avg = GPS_INVALID_SNR,
+                                      ._logtime = (TickType_t)GPS_INVALID_FIX_TIME};
+
+const static GPRMC_s GPRMC_invalid = {._time = GPS_INVALID_TIME,
+                                      ._latitude_lower = GPS_INVALID_ANGLE,
+                                      ._latitude_upper = GPS_INVALID_ANGLE,
+                                      ._longitude_lower = GPS_INVALID_ANGLE,
+                                      ._longitude_upper = GPS_INVALID_ANGLE,
+                                      ._speed = GPS_INVALID_SPEED,
+                                      ._course = GPS_INVALID_COURSE,
+                                      ._date = GPS_INVALID_DATE,
+                                      ._logtime = (TickType_t)GPS_INVALID_FIX_TIME};
+
+void NMEAParser_get_GPGGA(GPGGA_s *output) {
+    if ((GPGGA._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPGGA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+        memcpy(output,&GPGGA, sizeof(GPGGA_s));
+    } else {
+        memcpy(output, &GPGGA_invalid, sizeof(GPGGA_s));
+    }
+}
+
+void NMEAParser_get_GPGSA(GPGSA_s *output) {
+    if ((GPGSA._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPGSA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+        memcpy(output,&GPGSA, sizeof(GPGSA_s));
+    } else {
+        memcpy(output, &GPGSA_invalid, sizeof(GPGSA_s));
+    }
+}
+
+void NMEAParser_get_GPGSV(GPGSV_s *output) {
+    if ((GPGSV._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPGSV._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+        memcpy(output,&GPGSV, sizeof(GPGSV_s));
+    } else {
+        memcpy(output, &GPGSV, sizeof(GPGSV_s));
+    }
+}
+
+void NMEAParser_get_GPRMC(GPRMC_s *output) {
+    if ((GPRMC._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPRMC._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+        memcpy(output,&GPRMC, sizeof(GPRMC_s));
+    } else {
+        memcpy(output, &GPRMC, sizeof(GPRMC_s));
+    }
+}
 
 void NMEAParser_reset_all_values(void) {
-    _char_offset = 0;
-
-    _time = GPS_INVALID_TIME;
-    _latitude_lower = GPS_INVALID_ANGLE;
-    _latitude_upper = GPS_INVALID_ANGLE;
-    _longitude_lower = GPS_INVALID_ANGLE;
-    _longitude_upper = GPS_INVALID_ANGLE;
-    _fixquality = -1;
-    _numsats = GPS_INVALID_SATELLITES;
-    _hdop = GPS_INVALID_DOP;
-    _altitude = GPS_INVALID_ALTITUDE;
-
-    _fixtype = 0;
-    _pdop = GPS_INVALID_DOP;
-    _vdop = GPS_INVALID_DOP;
-
-    _numsats_visible = GPS_INVALID_SATELLITES;
-    _gsv_sentence = 0;
-    _gsv_sentences = 0;
-    _snr_count = 0;
-    _snr_total = GPS_INVALID_SNR;
-    _new_snr_total = 0;
-    _snr_avg = GPS_INVALID_SNR;
-
-    _speed = GPS_INVALID_SPEED;
-    _course = GPS_INVALID_ANGLE;
-    _date = GPS_INVALID_DATE;
-
-    _last_time_fix = GPS_INVALID_FIX_TIME;
-    _last_position_fix = GPS_INVALID_FIX_TIME;
+    NMEAParser_clear_GPGSV();
+    NMEAParser_clear_GPRMC();
+    NMEAParser_clear_GPGGA();
+    NMEAParser_clear_GPGSA();
 }
+
+void NMEAParser_clear_GPGGA(void) {
+    memcpy(&GPGGA, &GPGGA_invalid, sizeof(GPGGA_s));
+}
+
+void NMEAParser_clear_GPGSA(void) {
+    memcpy(&GPGSA, &GPGSA_invalid, sizeof(GPGSA_s));
+}
+
+void NMEAParser_clear_GPGSV(void) {
+    memcpy(&GPGSV, &GPGSV_invalid, sizeof(GPGSV_s));
+}
+
+void NMEAParser_clear_GPRMC(void) {
+    memcpy(&GPRMC, &GPRMC_invalid, sizeof(GPRMC_s));
+}
+
+
 
 // this should be in the header but ceedling is a bitch
 const char _GPGGA_TERM[7] = "$GPGGA";
@@ -72,7 +151,7 @@ bool NMEAParser_encode(char c)
     return new_data;
 }
 
-bool NMEAParser_decode_sentence()
+static bool NMEAParser_decode_sentence()
 {
     TickType_t logtime = xTaskGetTickCountFromISR();
 
@@ -135,6 +214,15 @@ bool NMEAParser_decode_sentence()
     if (!data_valid)
         return false;
 
+    // reset whichever sentence struct we're decoding
+    switch(sentence_type) {
+        case NMEA_GGA: NMEAParser_clear_GPGGA; GPGGA._logtime = logtime; break;
+        case NMEA_GSA: NMEAParser_clear_GPGSA; GPGSA._logtime = logtime; break;
+        case NMEA_GSV: NMEAParser_clear_GPGSV; GPGSV._logtime = logtime; break;
+        case NMEA_RMC: NMEAParser_clear_GPRMC; GPRMC._logtime = logtime; break;
+    }
+
+
     while (*p++ != ',') ; //advance to first term after sentence id/title
 
     // decode data
@@ -149,32 +237,32 @@ bool NMEAParser_decode_sentence()
                 {
                     case 0: // UTC Time
                         //_last_time_fix = logtime;
-                        _time = NMEAParser_parse_decimal(p);
+                        GPGGA._time = NMEAParser_parse_decimal(p);
                         break;
                     case 1: // Latitude
                         //_last_position_fix = logtime;
-                        NMEAParser_parse_degrees(p, &_latitude_upper, &_latitude_lower);
+                        NMEAParser_parse_degrees(p, &(GPGGA._latitude_upper), &(GPGGA._latitude_lower));
                         break;
                     case 2: // Latitude Indicator
-                        _latitude_upper = *p == 'S' ? -_latitude_upper : _latitude_upper;
+                        GPGGA._latitude_upper = *p == 'S' ? -GPGGA._latitude_upper : GPGGA._latitude_upper;
                         break;
                     case 3: // Longitude
-                        NMEAParser_parse_degrees(p, &_longitude_upper, &_longitude_lower);
+                        NMEAParser_parse_degrees(p, &(GPGGA._longitude_upper), &(GPGGA._longitude_lower));
                         break;
                     case 4: // Longitude Indicator
-                        _longitude_upper = *p == 'W' ? -_longitude_upper : _longitude_upper;
+                        GPGGA._longitude_upper = *p == 'W' ? -GPGGA._longitude_upper : GPGGA._longitude_upper;
                         break;
                     case 5: // Fix Quality
-                        _fixquality = *p - '0';
+                        GPGGA._fixquality = *p - '0';
                         break;
                     case 6: // Number of Satellites (tracked/used for fix)
-                        _numsats = (*p - '0') * 10 + *(p + 1) - '0';
+                        GPGGA._numsats = (*p - '0') * 10 + *(p + 1) - '0';
                         break;
                     case 7: // HDOP
-                        _hdop = (short) NMEAParser_parse_decimal(p);
+                        GPGGA._hdop = (short) NMEAParser_parse_decimal(p);
                         break;
                     case 8: // Altitude
-                        _altitude = NMEAParser_parse_decimal(p);
+                        GPGGA._altitude = NMEAParser_parse_decimal(p);
                         break;
                 }
                 break;
@@ -182,16 +270,16 @@ bool NMEAParser_decode_sentence()
                 switch (term_number)
                 {
                     case 1: // Fix Type
-                        _fixtype = *p - '0';
+                        GPGSA._fixtype = *p - '0';
                         break;
                     case 14: // PDOP
-                        _pdop = (short) NMEAParser_parse_decimal(p);
+                        GPGSA._pdop = (short) NMEAParser_parse_decimal(p);
                         break;
                     case 15: // HDOP
-                        _hdop = (short) NMEAParser_parse_decimal(p);
+                        GPGSA._hdop = (short) NMEAParser_parse_decimal(p);
                         break;
                     case 16: // VDOP
-                        _vdop = (short) NMEAParser_parse_decimal(p);
+                        GPGSA._vdop = (short) NMEAParser_parse_decimal(p);
                         break;
                 }
                 break;
@@ -199,30 +287,30 @@ bool NMEAParser_decode_sentence()
                 switch (term_number)
                 {
                     case 0: // GSV Sentence Count
-                        _gsv_sentences = *p - '0';
+                        GPGSV._gsv_sentences = *p - '0';
                         break;
                     case 1: // GSV Current Sentence Number
-                        _gsv_sentence = *p - '0';
+                        GPGSV._gsv_sentence = *p - '0';
                         break;
                     case 2: // Number of Satellites (in view)
-                        _numsats_visible = (*p - '0') * 10 + *(p + 1) - '0';
+                        GPGSV._numsats_visible = (*p - '0') * 10 + *(p + 1) - '0';
                         break;
                     case 6: // SNR 1
                     case 10: // SNR 2
                     case 14: // SNR 3
                     case 18: // SNR 4
                         if (*p >= '0' && *p <= '9' && *(p + 1) >= '0' && *(p + 1) <= '9')
-                            _snr_count++;
-                        _new_snr_total += NMEAParser_parse_decimal(p);
+                            GPGSV._snr_count++;
+                        GPGSV._new_snr_total += NMEAParser_parse_decimal(p);
                         char *ptemp;
                         ptemp = p;
                         while (*ptemp != ',' && *ptemp != '*') ptemp++;
-                        if ((_gsv_sentence == _gsv_sentences) && (*ptemp ==  '*')) // check to see if multiline gsv message is complete
+                        if ((GPGSV._gsv_sentence == GPGSV._gsv_sentences) && (*ptemp ==  '*')) // check to see if multiline gsv message is complete
                         {
-                            _snr_total = _new_snr_total;
-                            _snr_avg = _snr_total / _snr_count;
-                            _new_snr_total = 0;
-                            _snr_count = 0;
+                            GPGSV._snr_total = GPGSV._new_snr_total;
+                            GPGSV._snr_avg = GPGSV._snr_total / GPGSV._snr_count;
+                            GPGSV._new_snr_total = 0;
+                            GPGSV._snr_count = 0;
                         }
                         break;
                 }
@@ -232,29 +320,29 @@ bool NMEAParser_decode_sentence()
                 {
                     case 0: // UTC Time
                         //_last_time_fix = logtime;
-                        _time = NMEAParser_parse_decimal(p);
+                        GPRMC._time = NMEAParser_parse_decimal(p);
                         break;
                     case 2: // Latitude
                         //_last_position_fix = logtime;
-                        NMEAParser_parse_degrees(p, &_latitude_upper, &_latitude_lower);
+                        NMEAParser_parse_degrees(p, &(GPRMC._latitude_upper), &(GPRMC._latitude_lower));
                         break;
                     case 3: // Latitude Indicator
-                        _latitude_upper = *p == 'S' ? -_latitude_upper : _latitude_upper;
+                        GPRMC._latitude_upper = *p == 'S' ? -GPRMC._latitude_upper : GPRMC._latitude_upper;
                         break;
                     case 4: // Longitude
-                        NMEAParser_parse_degrees(p, &_longitude_upper, &_longitude_lower);
+                        NMEAParser_parse_degrees(p, &(GPRMC._longitude_upper), &(GPRMC._longitude_lower));
                         break;
                     case 5: // Longitude Indicator
-                        _longitude_upper = *p == 'W' ? -_longitude_upper : _longitude_upper;
+                        GPRMC._longitude_upper = *p == 'W' ? -GPRMC._longitude_upper : GPRMC._longitude_upper;
                         break;
                     case 6: // Speed
-                        _speed = NMEAParser_parse_decimal(p);
+                        GPRMC._speed = NMEAParser_parse_decimal(p);
                         break;
                     case 7: // Course
-                        _course = NMEAParser_parse_decimal(p);
+                        GPRMC._course = NMEAParser_parse_decimal(p);
                         break;
                     case 8: // UTC Date
-                        _date = NMEAParser_parse_decimal(p) / 100;
+                        GPRMC._date = NMEAParser_parse_decimal(p) / 100;
                         break;
                 }
                 break;
@@ -276,14 +364,14 @@ bool NMEAParser_decode_sentence()
     return true;
 }
 
-int NMEAParser_termcmp(const char *str1, const char *str2)
+static int NMEAParser_termcmp(const char *str1, const char *str2)
 {
     while (*str1 && (*str1 == *str2))
         str1++, str2++;
     return (*str1 > *str2) - (*str2 > *str1);
 }
 
-int NMEAParser_hexToInt(char hex)
+static int NMEAParser_hexToInt(char hex)
 {
     if (hex >= 'A' && hex <= 'F')
         return hex - 'A' + 10;
@@ -293,7 +381,7 @@ int NMEAParser_hexToInt(char hex)
         return hex - '0';
 }
 
-int32_t NMEAParser_parse_decimal(char *p)
+static int32_t NMEAParser_parse_decimal(char *p)
 {
     bool neg = *p == '-';
     if (neg) p++;
@@ -313,7 +401,7 @@ int32_t NMEAParser_parse_decimal(char *p)
     return neg ? -ret : ret;
 }
 
-void NMEAParser_parse_degrees(char *p, int32_t *upper, int32_t *lower)
+static void NMEAParser_parse_degrees(char *p, int32_t *upper, int32_t *lower)
 {
     long deg = 0L;
     while ((*(p + 2) != '.') && (*p >= '0' && *p <= '9'))
