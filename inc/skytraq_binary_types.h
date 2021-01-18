@@ -18,16 +18,16 @@
 //TODO: create enum for messages with sub ID
 
 typedef enum SYSTEM_INPUT_IDs {
-  SYSTEM_RESTART                           = 0x1,    // perform a reset
-  QUERY_SOFTWARE_VERSION                   = 0x2,    // reset pointer to log buffer
-  QUERY_SOFTWARE_CRC                       = 0x3,
-  SET_FACTORY_DEFAULTS                     = 0x4,
-  CONFIGURE_SERIAL_PORT                    = 0x5,
-  CONFIGURE_NMEA                           = 0x8,
-  CONFIGURE_MESSAGE_TYPE                   = 0x9,
-  UPLOAD_SOFTWARE_IMAGE                    = 0xB,
-  CONFIGURE_POWER_MODE                     = 0xC,
-  CONFIGURE_UPDATE_RATE                    = 0xE,
+  SYSTEM_RESTART                           = 0x01,    // perform a reset
+  QUERY_SOFTWARE_VERSION                   = 0x02,    // reset pointer to log buffer
+  QUERY_SOFTWARE_CRC                       = 0x03,
+  SET_FACTORY_DEFAULTS                     = 0x04,
+  CONFIGURE_SERIAL_PORT                    = 0x05,
+  CONFIGURE_NMEA                           = 0x08,
+  CONFIGURE_MESSAGE_TYPE                   = 0x09,
+  UPLOAD_SOFTWARE_IMAGE                    = 0x0B,
+  CONFIGURE_POWER_MODE                     = 0x0C,
+  CONFIGURE_UPDATE_RATE                    = 0x0E,
   QUERY_UPDATE_RATE                        = 0x10,
   CONFIGURE_NAV_MESSAGE_INTERVAL           = 0x11,
   QUERY_POWER_MODE                         = 0x15
@@ -60,6 +60,7 @@ typedef enum GNSS_INPUT_IDs {
   SET_GLONASS_ALMANAC                      = 0x5E,
   GET_GLONASS_TIME_CORRECT_                = 0x5F,
   SET_GLONASS_TIME_CORRECT                 = 0x60,
+
 } GNSS_INPUT_IDs;
 
 typedef enum SYSTEM_OUTPUT_IDS {
@@ -72,6 +73,7 @@ typedef enum SYSTEM_OUTPUT_IDS {
   GLONASS_ALMANAC                          = 0x91,
   GLONASS_TIME_CORRECT                     = 0x92,
   GNSS_NMEA_TALKER_ID                      = 0x93,
+
 } SYSTEM_OUTPUT_IDS;
 
 typedef enum GNSS_OUTPUT_IDS {
@@ -85,7 +87,86 @@ typedef enum GNSS_OUTPUT_IDS {
   GNSS_1PPS_CABLE_DELAY                    = 0XBB,
   GPS_ALMANAC_DATA                         = 0XBE,
   GNSS_1PPS_TIMING                         = 0XC2
+
 } GNSS_OUTPUT_IDS;
+
+typedef enum GNSS_INPUT_MESSAGE_SUBIDs {
+  // the byte order of these may have to be swapped.
+  // Not really sure yet. 
+  CONFIGURE_SBAS                           = 0x6201,
+  QUERY_SBAS_STATUS                        = 0x6202,
+  CONFIGURE_QZSS                           = 0x6203,
+  QUERY_QZSS_STATUS                        = 0x6204,
+  CONFIGURE_SAEE                           = 0x6301,
+  QUERY_SAEE_STATUS                        = 0x6302,
+  QUERY_BOOT_STATUS                        = 0x6401,
+  CONFIGURE_EXTENDED_NMEA_MESSAGE_INTERVAL = 0x6406,
+  QUERY_EXTENDED_NMEA_MESSAGE_INTERVAL     = 0x6407,
+  CONFIGURE_INTERFERENCE_DETECTION         = 0x6406,
+  QUERY_INTERFERENCE_DETECTION             = 0x6407,
+  CONFIGURE_GPS_SEARCH_NUMBER              = 0x640A,
+  QUERY_GPS_SEARCH_NUMBER                  = 0x640B,
+  CONFIGURE_POSITION_FIX_MASK              = 0x6411,
+  QUERY_POSITION_FIX_MASK                  = 0x6412,
+  CONFIGURE_UTC_REFERENCE                  = 0x6415,
+  QUERY_UTC_REFERENCE                      = 0x6416,
+  CONFIGURE_GNSS_NAV_MODE                  = 0x6417,
+  QUERY_GNSS_NAV_MODE                      = 0x6418,
+  CONFIGURE_GNSS_CONSTELLATION_TYPE        = 0x6419,
+  QUERY_GNSS_CONSTELLATION_TYPE            = 0x641A,
+  CONFIGURE_LEAP_SECONDS                   = 0x641F,
+  QUERY_GPS_TIME                           = 0x6420,
+  CONFIGURE_GNSS_DATUM_INDEX               = 0x6427,
+  QUERY_GNSS_DATUM_INDEX                   = 0x6428,
+  CONFIGURE_GNSS_GEOFENCE_DATA             = 0x642F,
+  QUERY_GNSS_GEOFENCE_DATA                 = 0x6430,
+  QUERY_GNSS_GEOGENCE_RESULT               = 0x6431,
+  CONFIGURE_1PPS_WIDTH                     = 0x6501,
+  QUERY_1PPS_WIDTH                         = 0x6502,
+  CONFIGURE_1PPS_FREQ                      = 0x6503,
+  QUERY_1PPS_FREQ                          = 0x6504,
+  SET_BEIDOU_EPHEMERIS                     = 0x6701,
+  GET_BEIDOU_EPHEMERIS                     = 0x6702,
+  SET_BEIDOU_ALMANAC                       = 0x6703,
+  GET_BEIDOU_ALMANAC                       = 0x6704,
+  CONFIGURE_RTK_MODE                       = 0x6A01,
+  QUERY_RTK_MODE                           = 0x6A02,
+
+} GNSS_INPUT_MESSAGE_SUBIDs;
+
+typedef enum GNSS_OUTPUT_MESSAGE_SUBIDS {
+  // the byte order of these may have to be swapped.
+  // Not really sure yet. 
+  SBAS_STATUS                              = 0x6280,
+  QZSS_STATUS                              = 0x6281,
+  SAEE_STATUS                              = 0x6380,
+  GNSS_BOOT_STATUS                         = 0x6480,
+  EXTENDED_NMEA_MESSAGE_INTERVAL           = 0x6481,
+  INTERFERENCE_DETECTION_STATUS            = 0x6483,
+  GPS_SEARCH_ENGINE_NUMBER                 = 0x6485,
+  POSITION_FIX_MASK                        = 0x6488,
+  GNSS_NAVIATION_MODE                      = 0x648B,
+  GNSS_CONSTELLATION_TYPE                  = 0x648C,
+  GPS_TIME                                 = 0x648E,
+  GNSS_DATUM_INDEX                         = 0x6492,
+  GNSS_GEOFENCE_DATA                       = 0x6496,
+  GNSS_GEOFENCE_RESULT                     = 0x6497,
+  GNSS_1PPS_PULSE_WIDTH                    = 0x6502,
+  GNSS_1PPS_FREQUENCY                      = 0x6581,
+  BEIDOU_EPHEMERIS_DATA                    = 0x6780,
+  BEIDOU_ALMANAC_DATA                      = 0x6781,
+  RTK_MODE                                 = 0x6A80,
+
+} GNSS_OUTPUT_MESSAGE_SUBIDS;
+
+//! (0x01) System Restart
+enum StartMode {
+    NO_MODE_CHANGE = 0x00,
+    HOT_START = 0x01,
+    WARM_START = 0x02,
+    COLD_START = 0x03,
+    TEST_MODE = 0x04,
+};
 
 
 #endif /* SKYTRAQ_BINARY_TYPES_H */
