@@ -2,7 +2,7 @@
 #define NMEA_TYPES_H
 
 #include <stdint.h>
-#include "freeRTOS.h"
+#include "FreeRTOS.h"
 
 typedef struct GPGGA_s {
     uint32_t   _time; // UTC time in hundredths of a second
