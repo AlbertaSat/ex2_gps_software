@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "freeRTOS.h"
+#include "FreeRTOS.h"
 #include "NMEA_types.h"
 
 #define NMEA_GGA 0
