@@ -160,13 +160,58 @@ typedef enum GNSS_OUTPUT_MESSAGE_SUBIDS {
 } GNSS_OUTPUT_MESSAGE_SUBIDS;
 
 //! (0x01) System Restart
-enum StartMode {
+typedef enum StartMode {
     NO_MODE_CHANGE = 0x00,
     HOT_START = 0x01,
     WARM_START = 0x02,
     COLD_START = 0x03,
     TEST_MODE = 0x04,
-};
+} StartMode;
 
+typedef enum skytraq_baud_rate {
+  r_4800 = 0,
+  r_9600 = 1,
+  r_19200 = 2,
+  r_38400 = 3,
+  r_57600 = 4,
+  r_115200 = 5,
+  r_230400 = 6,
+  r_460800 = 7,
+  r_921600 = 8,
+} skytraq_baud_rate;
+
+typedef enum skytraq_update_attributes {
+  UPDATE_TO_SRAM = 0,
+  UPDATE_TO_FLASH = 1,
+  // TODO: figure out what this means
+  UPDATE_TEMPORARILY = 2,
+} skytraq_update_attributes;
+
+typedef enum skytraq_message_type {
+  NO_OUTPUT = 0,
+  NMEA_MESSAGE = 1,
+  BINARY_MESSAGE = 2,
+} skytraq_message_type;
+
+typedef enum skytraq_power_mode {
+  NORMAL,
+  POWERSAVE,
+} skytraq_power_mode;
+
+/*typedef enum position_pinning {
+  DEFAULT = 0,
+  ENABLE = 1,
+  DISABLE = 2,
+} position_pinning;
+*/
+typedef enum nmea_talker_IDs {
+  GP = 0,
+  GN = 1,
+} nmea_talker_IDs;
+
+typedef enum enable_disable {
+  DISABLE,
+  ENABLE
+} enable_disable
 
 #endif /* SKYTRAQ_BINARY_TYPES_H */
