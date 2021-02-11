@@ -63,52 +63,59 @@ const static GPRMC_s GPRMC_invalid = {._time = GPS_INVALID_TIME,
                                       ._date = GPS_INVALID_DATE,
                                       ._logtime = (TickType_t)GPS_INVALID_FIX_TIME};
 
-void NMEAParser_get_GPGGA(GPGGA_s *output) {
-    tickCount = xTaskGetTickCount();
+bool NMEAParser_get_GPGGA(GPGGA_s *output) {
+    TickType_t tickCount = xTaskGetTickCount();
 
     taskENTER_CRITICAL();
     if ((GPGGA._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPGGA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPGGA, sizeof(GPGGA_s));
-    } else {
-        memcpy(output, &GPGGA_invalid, sizeof(GPGGA_s));
+        taskEXIT_CRITICAL();
+        return true;
     }
     taskEXIT_CRITICAL();
+    return false;
+
 }
 
-void NMEAParser_get_GPGSA(GPGSA_s *output) {
-    tickCount = xTaskGetTickCount();
+bool NMEAParser_get_GPGSA(GPGSA_s *output) {
+    TickType_t tickCount = xTaskGetTickCount();
 
     taskENTER_CRITICAL();
     if ((GPGSA._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPGSA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPGSA, sizeof(GPGSA_s));
-    } else {
-        memcpy(output, &GPGSA_invalid, sizeof(GPGSA_s));
+        taskEXIT_CRITICAL();
+        return true;
+
     }
     taskEXIT_CRITICAL();
+    return false;
 }
 
-void NMEAParser_get_GPGSV(GPGSV_s *output) {
-    tickCount = xTaskGetTickCount();
+bool NMEAParser_get_GPGSV(GPGSV_s *output) {
+    TickType_t tickCount = xTaskGetTickCount();
 
     taskENTER_CRITICAL();
     if ((GPGSV._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPGSV._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPGSV, sizeof(GPGSV_s));
-    } else {
-        memcpy(output, &GPGSV, sizeof(GPGSV_s));
+        taskEXIT_CRITICAL();
+        return true;
     }
+
     taskEXIT_CRITICAL();
+    return false;
 }
 
-void NMEAParser_get_GPRMC(GPRMC_s *output) {
-    tickCount = xTaskGetTickCount();
+bool NMEAParser_get_GPRMC(GPRMC_s *output) {
+    TickType_t tickCount = xTaskGetTickCount();
 
     taskENTER_CRITICAL();
-    if ((GPRMC._logtime != GPS_INVALID_FIX_TIME) && (tickcount - GPRMC._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+    if ((GPRMC._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPRMC._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPRMC, sizeof(GPRMC_s));
-    } else {
-        memcpy(output, &GPRMC, sizeof(GPRMC_s));
+        taskEXIT_CRITICAL();
+        return true;
     }
     taskEXIT_CRITICAL();
+    return false;
 }
 
 void NMEAParser_reset_all_values(void) {
