@@ -6,7 +6,9 @@
 */
 
 #include "NMEAParser.h"
+#include "os_task.h"
 #include <string.h>
+#include "FreeRTOS.h"
 /*
  TODO: The library expresses some values a bit weirdly. for example, 11.4 knots in speed is expressed as 114
  I intend to change this to floating point values. Latitude/longitude will continue to be expressed in upper/lower
@@ -62,35 +64,51 @@ const static GPRMC_s GPRMC_invalid = {._time = GPS_INVALID_TIME,
                                       ._logtime = (TickType_t)GPS_INVALID_FIX_TIME};
 
 void NMEAParser_get_GPGGA(GPGGA_s *output) {
-    if ((GPGGA._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPGGA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+    tickCount = xTaskGetTickCount();
+
+    taskENTER_CRITICAL();
+    if ((GPGGA._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPGGA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPGGA, sizeof(GPGGA_s));
     } else {
         memcpy(output, &GPGGA_invalid, sizeof(GPGGA_s));
     }
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_get_GPGSA(GPGSA_s *output) {
-    if ((GPGSA._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPGSA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+    tickCount = xTaskGetTickCount();
+
+    taskENTER_CRITICAL();
+    if ((GPGSA._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPGSA._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPGSA, sizeof(GPGSA_s));
     } else {
         memcpy(output, &GPGSA_invalid, sizeof(GPGSA_s));
     }
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_get_GPGSV(GPGSV_s *output) {
-    if ((GPGSV._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPGSV._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+    tickCount = xTaskGetTickCount();
+
+    taskENTER_CRITICAL();
+    if ((GPGSV._logtime != GPS_INVALID_FIX_TIME) && (tickCount - GPGSV._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPGSV, sizeof(GPGSV_s));
     } else {
         memcpy(output, &GPGSV, sizeof(GPGSV_s));
     }
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_get_GPRMC(GPRMC_s *output) {
-    if ((GPRMC._logtime != GPS_INVALID_FIX_TIME) && (xTaskGetTickCount() - GPRMC._logtime < GPS_AGE_INVALID_THRESHOLD)) {
+    tickCount = xTaskGetTickCount();
+
+    taskENTER_CRITICAL();
+    if ((GPRMC._logtime != GPS_INVALID_FIX_TIME) && (tickcount - GPRMC._logtime < GPS_AGE_INVALID_THRESHOLD)) {
         memcpy(output,&GPRMC, sizeof(GPRMC_s));
     } else {
         memcpy(output, &GPRMC, sizeof(GPRMC_s));
     }
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_reset_all_values(void) {
@@ -101,19 +119,27 @@ void NMEAParser_reset_all_values(void) {
 }
 
 void NMEAParser_clear_GPGGA(void) {
+    taskENTER_CRITICAL();
     memcpy(&GPGGA, &GPGGA_invalid, sizeof(GPGGA_s));
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_clear_GPGSA(void) {
+    taskENTER_CRITICAL();
     memcpy(&GPGSA, &GPGSA_invalid, sizeof(GPGSA_s));
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_clear_GPGSV(void) {
+    taskENTER_CRITICAL();
     memcpy(&GPGSV, &GPGSV_invalid, sizeof(GPGSV_s));
+    taskEXIT_CRITICAL();
 }
 
 void NMEAParser_clear_GPRMC(void) {
+    taskENTER_CRITICAL();
     memcpy(&GPRMC, &GPRMC_invalid, sizeof(GPRMC_s));
+    taskEXIT_CRITICAL();
 }
 
 
@@ -158,7 +184,8 @@ static bool NMEAParser_decode_sentence()
     // determine sentence type
     int sentence_type;
     char title[7];
-    for (int i = 0; i < 6; i++)
+    int i;
+    for (i = 0; i < 6; i++)
         title[i] = _sentence[i];
     title[6] = 0;
     if (!NMEAParser_termcmp(title, _GPGGA_TERM))
@@ -187,13 +214,14 @@ static bool NMEAParser_decode_sentence()
     bool data_valid = false;
     switch (sentence_type)
     {
+        int i;
         case NMEA_GGA:
-            for (int i = 0; i < 5; i++) // skip over sentence until start of 5th term
+            for (i = 0; i < 5; i++) // skip over sentence until start of 5th term
                 while (*p++ != ',') ;
             data_valid = *p > '0';
             break;
         case NMEA_GSA:
-            for (int i = 0; i < 1; i++)
+            for (i = 0; i < 1; i++)
                 while (*p++ != ',') ;
             data_valid = *p > '1';
             break;
@@ -201,7 +229,7 @@ static bool NMEAParser_decode_sentence()
             data_valid = true;
             break;
         case NMEA_RMC:
-            for (int i = 0; i < 1; i++)
+            for (i = 0; i < 1; i++)
                 while (*p++ != ',') ;
             data_valid = *p == 'A';
             break;
@@ -216,10 +244,10 @@ static bool NMEAParser_decode_sentence()
 
     // reset whichever sentence struct we're decoding
     switch(sentence_type) {
-        case NMEA_GGA: NMEAParser_clear_GPGGA; GPGGA._logtime = logtime; break;
-        case NMEA_GSA: NMEAParser_clear_GPGSA; GPGSA._logtime = logtime; break;
-        case NMEA_GSV: NMEAParser_clear_GPGSV; GPGSV._logtime = logtime; break;
-        case NMEA_RMC: NMEAParser_clear_GPRMC; GPRMC._logtime = logtime; break;
+        case NMEA_GGA: NMEAParser_clear_GPGGA(); GPGGA._logtime = logtime; break;
+        case NMEA_GSA: NMEAParser_clear_GPGSA(); GPGSA._logtime = logtime; break;
+        case NMEA_GSV: NMEAParser_clear_GPGSV(); GPGSV._logtime = logtime; break;
+        case NMEA_RMC: NMEAParser_clear_GPRMC(); GPRMC._logtime = logtime; break;
     }
 
 
