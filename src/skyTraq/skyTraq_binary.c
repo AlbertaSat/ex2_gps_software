@@ -1,12 +1,11 @@
 #include "skyTraq_binary.h"
 
-#define header_size 4
-#define footer_size 3
-#include <string.h>
-#include <stdlib.h>
+
+
 #include "sci.h"
 #include "skyTraq_binary.h"
 #include "skytraq_binary_types.h"
+#include <string.h>
 
 //TODO: implement software download
 //TODO: implement setting datum to WGS-84. Currently no datum configuration functions implemented
@@ -32,18 +31,32 @@ All functions associated with getting this information are implemented
 This should help with determining if we need to implement those
 */
 
+#pragma WEAK(skytraq_send_message)
+ErrorCode skytraq_send_message(uint8_t *paylod, uint16_t size) {
+    return MESSAGE_INVALID;
+}
+
+#pragma WEAK(skytraq_send_message_with_reply)
+ErrorCode skytraq_send_message_with_reply(uint8_t *paylod, uint16_t size, uint8_t *reply) {
+    return MESSAGE_INVALID;
+}
+
 uint8_t calc_checksum(uint8_t *message, uint16_t payload_length) {
     // skip first 4 bytes of message
     message += 4;
     uint8_t checksum = 0;
     uint16_t i = 0;
     for (i; i<payload_length; i++) {
-        checksum ^= *message;
+        checksum ^= *(message+i);
     }
     return checksum;
 }
 
-bool skytraq_verify_checksum(uint8_t *message, uint16_t payload_length, uint8_t expected) {
+// message MUST include null terminating byte '\0'
+bool skytraq_verify_checksum(uint8_t *message) {
+    int checksum_location = strlen((char *)message) - 3; // 3rd to last byte is checksum
+    uint8_t expected = message[checksum_location];
+    uint16_t payload_length = (message[2] << 8) | message[3]; // extract 16 bit payload size
     uint8_t cs = calc_checksum(message, payload_length);
     if (cs == expected) {
         return true;
@@ -51,24 +64,7 @@ bool skytraq_verify_checksum(uint8_t *message, uint16_t payload_length, uint8_t 
     return false;
 }
 
-
-// Sending a message will block until a reply is received
-void skytraq_send_message(uint8_t *paylod, uint16_t size) {
-    int total_size = size+header_size+footer_size;
-    uint8_t *message = malloc(total_size);
-    memset(message, 0, total_size);
-    message[0] = 0xA0;
-    message[1] = 0xA1;
-    *(uint16_t *) &(message[2]) = size;
-    memcpy(&(message[4]), paylod, size);
-    message[total_size-3] = calc_checksum(message, size);
-    message[total_size-1] = 0x0A;
-    message[total_size-2] = 0x0D;
-
-    sciSend(scilinREG, total_size, message);
-}
-
-void skytraq_restart_receiver(StartMode start_mode, uint16_t utc_year, uint8_t utc_month, uint8_t utc_day, uint8_t utc_hour, uint8_t utc_minute, uint8_t utc_second, int16_t latitude, int16_t longitude, int16_t altitude) {
+ErrorCode skytraq_restart_receiver(StartMode start_mode, uint16_t utc_year, uint8_t utc_month, uint8_t utc_day, uint8_t utc_hour, uint8_t utc_minute, uint8_t utc_second, int16_t latitude, int16_t longitude, int16_t altitude) {
         uint16_t length = 15;
         uint8_t payload[15];
         
@@ -84,37 +80,37 @@ void skytraq_restart_receiver(StartMode start_mode, uint16_t utc_year, uint8_t u
         *(int16_t *) &(payload[11]) = longitude;
         *(int16_t *) &(payload[13]) = altitude;
 
-        skytraq_send_message(payload, length);
+        return skytraq_send_message(payload, length);
 }
 
-void skytraq_query_software_version(void) {
+ErrorCode skytraq_query_software_version() {
     uint16_t length = 2;
     uint8_t payload[2];
     payload[0] = QUERY_SOFTWARE_VERSION;
     payload[1] = 1; // system code
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
 }
 
-void skytraq_query_software_CRC(void) {
+ErrorCode skytraq_query_software_CRC(uint8_t *reply) {
     uint16_t length = 2;
     uint8_t payload[2];
     payload[0] = QUERY_SOFTWARE_CRC;
     payload[1] = 1; // system code
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message_with_reply(payload, length, reply);
 }
 
-void skytraq_restore_factory_defaults(void) {
+ErrorCode skytraq_restore_factory_defaults(void) {
     uint16_t length = 2;
     uint8_t payload[2];
     payload[0] = SET_FACTORY_DEFAULTS;
     payload[1] = 1; // system code
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
 }
 
-void skytraq_configure_serial_port(skytraq_baud_rate rate, skytraq_update_attributes attribute) {
+ErrorCode skytraq_configure_serial_port(skytraq_baud_rate rate, skytraq_update_attributes attribute) {
     uint16_t length = 4;
     uint8_t payload[4];
 
@@ -123,11 +119,11 @@ void skytraq_configure_serial_port(skytraq_baud_rate rate, skytraq_update_attrib
     payload[2] = rate;
     payload[3] = attribute;
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
     
 }
 
-void skytraq_configure_nmea_output_rate(uint8_t GGA_interval, uint8_t GSA_interval, uint8_t GSV_interval, uint8_t GLL_interval, uint8_t RMC_interval, uint8_t VTG_interval, uint8_t ZDA_interval, skytraq_update_attributes attribute) {
+ErrorCode skytraq_configure_nmea_output_rate(uint8_t GGA_interval, uint8_t GSA_interval, uint8_t GSV_interval, uint8_t GLL_interval, uint8_t RMC_interval, uint8_t VTG_interval, uint8_t ZDA_interval, skytraq_update_attributes attribute) {
     uint16_t length = 9;
     uint8_t payload[9];
     payload[0] = CONFIGURE_NMEA;
@@ -140,10 +136,10 @@ void skytraq_configure_nmea_output_rate(uint8_t GGA_interval, uint8_t GSA_interv
     payload[7] = ZDA_interval;
     payload[8] = attribute;
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
 }
 
-void configure_message_type(skytraq_message_type type, skytraq_update_attributes attribute) {
+ErrorCode configure_message_type(skytraq_message_type type, skytraq_update_attributes attribute) {
     uint16_t length = 3;
     uint8_t payload[3];
 
@@ -151,10 +147,10 @@ void configure_message_type(skytraq_message_type type, skytraq_update_attributes
     payload[1] = type;
     payload[2] = attribute;
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
 }
 
-void skytraq_configure_power_mode(skytraq_power_mode mode, skytraq_update_attributes attribute) {
+ErrorCode skytraq_configure_power_mode(skytraq_power_mode mode, skytraq_update_attributes attribute) {
     uint16_t length = 3;
     uint8_t payload[3];
 
@@ -162,20 +158,20 @@ void skytraq_configure_power_mode(skytraq_power_mode mode, skytraq_update_attrib
     payload[1] = mode;
     payload[2] = attribute;
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
 }
 
-void skytraq_get_gps_time(void) {
+ErrorCode skytraq_get_gps_time(uint8_t *reply) {
     uint16_t length = 2;
     uint8_t payload[2];
 
     * (uint16_t *) &(payload[0]) = QUERY_GPS_TIME;
     
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message_with_reply(payload, length, reply);
 }
 
-void skytraq_configure_utc_reference(enable_disable status, uint16_t utc_year, uint8_t utc_month, uint8_t utc_day, skytraq_update_attributes attribute) {
+ErrorCode skytraq_configure_utc_reference(enable_disable status, uint16_t utc_year, uint8_t utc_month, uint8_t utc_day, skytraq_update_attributes attribute) {
     uint16_t length = 8;
     uint8_t payload[8];
 
@@ -186,7 +182,7 @@ void skytraq_configure_utc_reference(enable_disable status, uint16_t utc_year, u
     payload[6] = utc_day;
     payload[7] = attribute;
 
-    skytraq_send_message(payload, length);
+    return skytraq_send_message(payload, length);
 }
 
 /*
