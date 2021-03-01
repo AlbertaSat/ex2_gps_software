@@ -12,6 +12,8 @@
 /*
  TODO: The library expresses some values a bit weirdly. for example, 11.4 knots in speed is expressed as 114
  I intend to change this to floating point values. Latitude/longitude will continue to be expressed in upper/lower
+ NOTE: On specifically the arm cortex r4f, we are not allowed to use floating point registers in an ISR
+ recommend instead to keep these as integers, and return floats at the getter level
 
  Values to change: speed, course
 
