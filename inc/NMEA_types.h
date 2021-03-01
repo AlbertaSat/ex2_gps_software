@@ -5,10 +5,10 @@
 #include "FreeRTOS.h"
 
 typedef struct GPGGA_s {
-    uint32_t   _time; // UTC time in hundredths of a second
+    uint32_t   _time; // UTC time in hundredths of a second. as hhmmssss
     int32_t    _latitude_lower, _latitude_upper; // latitude in ten millionths of a degree
     int32_t    _longitude_lower, _longitude_upper; // longitude in ten millionths of a degree
-    uint8_t    _fixquality;
+    int8_t    _fixquality;
     uint8_t    _numsats; // number of satellites used for fix
     uint16_t   _hdop; // horizontal dilution of position (scaled by 100, i.e. 120 corresponds to a dop of 1.2)
     int32_t    _altitude; // altitude in centimeters
