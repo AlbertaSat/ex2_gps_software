@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "skytraq_binary_types.h"
-;
 
 typedef enum ErrorCode {
     SUCCESS,
@@ -44,4 +43,9 @@ ErrorCode skytraq_configure_power_mode(skytraq_power_mode mode, skytraq_update_a
 
 ErrorCode skytraq_get_gps_time(uint8_t *reply);
 
+ErrorCode skytraq_send_message_with_reply(uint8_t *payload, uint16_t size, uint8_t *reply);
+
+ErrorCode skytraq_send_message(uint8_t *paylod, uint16_t size);
+
+bool skytraq_binary_init();
 #endif // SKYTRAQ_BINARY_H

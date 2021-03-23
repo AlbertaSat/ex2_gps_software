@@ -1,11 +1,10 @@
-#include "skyTraq_binary.h"
-
-
-
-#include "sci.h"
-#include "skyTraq_binary.h"
+#include "skytraq_binary.h"
+#include "HL_sci.h"
 #include "skytraq_binary_types.h"
 #include <string.h>
+#include "FreeRTOS.h"
+#include "os_queue.h"
+#include "NMEAParser.h"
 
 //TODO: implement software download
 //TODO: implement setting datum to WGS-84. Currently no datum configuration functions implemented
@@ -26,19 +25,176 @@
                     set glonass time correction parameters
                     configure SBAS (seems to be mostly useful for planes)'
                     anything related to beidou
-
-All functions associated with getting this information are implemented
-This should help with determining if we need to implement those
 */
 
-#pragma WEAK(skytraq_send_message)
-ErrorCode skytraq_send_message(uint8_t *paylod, uint16_t size) {
-    return MESSAGE_INVALID;
+
+enum current_sentence {
+    none,
+    binary,
+    nmea
+} line_type;
+
+#define BUFSIZE 100
+#define ITEM_SIZE BUFSIZE
+#define QUEUE_LENGTH 2
+uint8_t inQueueStorage[ QUEUE_LENGTH * ITEM_SIZE ];
+static StaticQueue_t xStaticQueue;
+QueueHandle_t inQueue = NULL;
+
+char binary_message_buffer[BUFSIZE];
+int bin_buff_loc;
+
+uint8_t byte;
+
+bool sci_busy;
+
+int current_line_type = none;
+
+#define header_size 4
+#define footer_size 3
+
+bool skytraq_binary_init() {
+    memset(binary_message_buffer, 0, BUFSIZE);
+    bin_buff_loc = 0;
+    //TODO: make this use xQueueCreateStatic
+    sci_busy = false;
+    inQueue = xQueueCreate(QUEUE_LENGTH, ITEM_SIZE);
+    if (inQueue == NULL) {
+        return false;
+    }
+
+    // initialise sci
+    while ((GPS_SCI->FLR & 0x4) == 4);
+
+    sciEnableNotification(GPS_SCI, SCI_RX_INT);
+    sciReceive(GPS_SCI, 1, &byte);
+
+    return true;
 }
 
-#pragma WEAK(skytraq_send_message_with_reply)
-ErrorCode skytraq_send_message_with_reply(uint8_t *paylod, uint16_t size, uint8_t *reply) {
-    return MESSAGE_INVALID;
+
+ErrorCode skytraq_send_message(uint8_t *paylod, uint16_t size) {
+    if (sci_busy) {
+        return RESOURCE_BUSY;
+    }
+    sci_busy = true;
+    int total_size = size+header_size+footer_size;
+    uint8_t *message = pvPortMalloc(total_size);
+    memset(message, 0, total_size);
+    message[0] = 0xA0;
+    message[1] = 0xA1;
+    *(uint16_t *) &(message[2]) = size;
+    memcpy(&(message[4]), paylod, size);
+    message[total_size-3] = calc_checksum(message, size);
+    message[total_size-1] = 0x0A;
+    message[total_size-2] = 0x0D;
+
+
+    sciSend(GPS_SCI, total_size, message);
+    vPortFree(message);
+
+    uint8_t sentence[BUFSIZE];
+
+    // Will wait 1 second for a response
+    BaseType_t success = xQueueReceive(inQueue, sentence, 1000*portTICK_PERIOD_MS);
+    ex2_log("%d\r\n", success);
+    if (success  != pdPASS) {
+        sci_busy = false;
+        return UNKNOWN_ERROR;
+    }
+
+    bool cs_success = skytraq_verify_checksum(sentence);
+    cs_success = true;
+    if (cs_success) {
+        switch(sentence[4]){
+        case 0x83: sci_busy = false; return SUCCESS;
+        case 0x84: sci_busy = false; return MESSAGE_INVALID;
+        }
+    } else {
+        sci_busy = false;
+        return INVALID_CHECKSUM_RECEIVE;
+    }
+    // should never reach here... I pray there is a merciful God
+    sci_busy = false;
+    return UNKNOWN_ERROR;
+}
+
+ErrorCode skytraq_send_message_with_reply(uint8_t *payload, uint16_t size, uint8_t *reply) {
+    ErrorCode worked = skytraq_send_message(payload, size);
+
+    if (worked != SUCCESS) {
+        return worked;
+    }
+    // WARNING: possible race condition where another task could get control
+    // of the sci port in between send message returning and this function setting
+    // value to busy.
+    sci_busy = true;
+
+    uint8_t sentence[BUFSIZE];
+
+    // TODO: set a reasonable delay
+    BaseType_t success = xQueueReceive(inQueue, sentence, portMAX_DELAY);
+
+    if (success  != pdPASS) {
+        sci_busy = false;
+        return UNKNOWN_ERROR;
+    }
+    bool cs_success = skytraq_verify_checksum(sentence);
+
+    if (cs_success) {
+        strcpy((char *)reply, (char *)sentence);
+        sci_busy = false;
+        return SUCCESS;
+    } else {
+        sci_busy = false;
+        return INVALID_CHECKSUM_RECEIVE;
+    }
+}
+
+// TODO: should I really keep this?
+static inline increment_buffer(int *buf) {
+    *buf += 1;
+}
+
+// Interrupt Handler
+void get_byte() {
+    uint8_t in = byte;
+
+    switch(current_line_type) {
+
+    case none:
+        switch(in){
+        case '$': current_line_type = nmea; NMEAParser_encode(in); break; // this means NMEA decoding happens in the isr. Have to determine if this is a problem
+        case 0xA0: current_line_type = binary; binary_message_buffer[bin_buff_loc] = in; increment_buffer(&bin_buff_loc); break;
+        }; break;
+
+    case nmea: NMEAParser_encode(in); break;
+
+    case binary: binary_message_buffer[bin_buff_loc] = in; increment_buffer(&bin_buff_loc); break;
+    }
+
+    if (in == '\n') {
+        if (current_line_type == binary) {
+            current_line_type = none;
+            increment_buffer(&bin_buff_loc);
+            binary_message_buffer[bin_buff_loc] = '\0';
+            increment_buffer(&bin_buff_loc);
+            xQueueSendFromISR(inQueue, binary_message_buffer, NULL);
+            bin_buff_loc = 0;
+            memset(binary_message_buffer, 0, BUFSIZE);
+        } else {
+            current_line_type = none;
+        }
+    }
+
+}
+
+void gps_sciNotification(sciBASE_t *sci, unsigned flags) {
+    switch(flags) {
+    case SCI_RX_INT: get_byte(); sciReceive(sci, 1, &byte); break;
+
+    case SCI_TX_INT: break;
+    }
 }
 
 uint8_t calc_checksum(uint8_t *message, uint16_t payload_length) {
