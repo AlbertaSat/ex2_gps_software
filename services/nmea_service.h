@@ -13,6 +13,6 @@
 #include "os_task.h"
 #include "NMEAParser.h"
 
-BaseType_t NMEA_service();
+void NMEA_service();
 
 #endif /* EX2_HAL_EX2_GPS_SOFTWARE_SERVICES_INCLUDE_NMEA_SERVICE_H_ */

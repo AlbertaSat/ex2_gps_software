@@ -12,7 +12,7 @@
 
 static char NMEA_buf[NMEASENTENCE_MAXLENGTH];
 
-BaseType_t NMEA_service() {
+void NMEA_service() {
     ex2_log("NMEA task started");
 
     init_NMEA();
