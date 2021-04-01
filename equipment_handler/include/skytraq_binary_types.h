@@ -208,4 +208,13 @@ typedef enum enable_disable {
   ENABLE
 } enable_disable;
 
+typedef enum ErrorCode {
+    SUCCESS,
+    RESOURCE_BUSY,
+    MESSAGE_INVALID,
+    UNKNOWN_ERROR,
+    INVALID_CHECKSUM,
+    INVALID_CHECKSUM_RECEIVE
+} ErrorCode;
+
 #endif /* SKYTRAQ_BINARY_TYPES_H */
