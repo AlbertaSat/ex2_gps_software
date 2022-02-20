@@ -17,23 +17,28 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#ifndef PCAL9538A_H_
+#define PCAL9538A_H_
+
 #include <stdint.h>
 
-#define PCAL9538A_ADDR              (0x70)
+#define PCAL9538A_ADDR (0x70)
 #ifdef IS_ATHENA
-#define PCAL9538A_PORT              i2cREG2
+#define PCAL9538A_PORT i2cREG2
 #else
-#define PCAL9538A_PORT              i2cREG1 // port used on dev board
+#define PCAL9538A_PORT i2cREG1 // port used on dev board
 #endif
 
 typedef enum {
-ADCS = 0,
-DFGM = 1,
-IRIS = 2,
-OBC = 3,
-CHARON = 4,
-UHF = 5,
+    PWR_ADCS = 0,
+    PWR_DFGM = 1,
+    PWR_IRIS = 2,
+    PWR_OBC = 3,
+    PWR_CHARON = 4,
+    PWR_UHF = 5,
 } Power_Channel;
 
 uint8_t setuppcal9538a(void);
 uint8_t triggerPowerChannelReset(Power_Channel channel);
+
+#endif
