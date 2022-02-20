@@ -1,4 +1,4 @@
-#include "skytraq_gps_driver.h"
+#include "skytraq_gps.h"
 #include "skytraq_binary.h"
 #include "FreeRTOS.h"
 #include "HL_sci.h"

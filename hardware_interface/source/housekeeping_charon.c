@@ -12,18 +12,25 @@
  * GNU General Public License for more details.
  */
 /**
- * @file    housekeeping_charon.h
+ * @file    housekeeping_charon.c
  * @author  Thomas Ganley
  * @date    2021-12-29
  */
 
-#include <stdint.h>
-#include "skytraq_binary_types.h"
-#include "ads7128.h"
+#include "housekeeping_charon.h"
 
-typedef struct __attribute__((packed)){
-    uint16_t crc;
-    int      temparray[8];           // Charon temperature array
-} charon_housekeeping;
+GPS_RETURNSTATE Charon_getHK(charon_housekeeping *hk) {
+    // Read temperature sensors
+    if (readAllTemps(&hk->temparray[0])) {
+        return UNKNOWN_ERROR;
+    }
 
-GPS_RETURNSTATE Charon_getHK(charon_housekeeping * hk);
+    // Read GPS firmware CRC
+    GPS_RETURNSTATE ret = gps_skytraq_get_software_crc(&hk->crc);
+
+    if (ret != GPS_SUCCESS) {
+        return ret;
+    }
+
+    return GPS_SUCCESS;
+}
